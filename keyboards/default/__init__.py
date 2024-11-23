@@ -1,0 +1,1 @@
+from . import valyuta_kurs
