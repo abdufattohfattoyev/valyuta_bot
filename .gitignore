@@ -130,3 +130,7 @@ dmypy.json
 .idea/*
 .idea
 .env
+
+# database files
+*.db
+data/*.db
