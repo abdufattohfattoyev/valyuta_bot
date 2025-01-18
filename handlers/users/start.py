@@ -247,6 +247,7 @@ async def handle_conversion(message: types.Message):
 async def handle_invalid_input(message: types.Message):
     await message.answer("⚠️ <b>Foydalanuvchi, iltimos, kerakli bo'limlar orqali ishlang </b>", parse_mode="HTML")
 
+
 # Asinxron ravishda kurs yangilanishlarini boshlash
 async def on_start():
     # Kurs yangilanishlarini har kuni yuborishni boshlash
