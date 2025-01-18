@@ -246,7 +246,6 @@ async def handle_conversion(message: types.Message):
 @dp.message_handler(lambda message: not (message.text.replace(',', '.', 1).isdigit() or ('.' in message.text and message.text.count('.') == 1) or (',' in message.text and message.text.count(',') == 1)))
 async def handle_invalid_input(message: types.Message):
     await message.answer("⚠️ <b>Foydalanuvchi, iltimos, kerakli bo'limlar orqali ishlang </b>", parse_mode="HTML")
-    
 
 # Asinxron ravishda kurs yangilanishlarini boshlash
 async def on_start():
