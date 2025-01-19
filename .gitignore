@@ -28,8 +28,6 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -131,6 +129,6 @@ dmypy.json
 .idea
 .env
 
-# database files
+# Database files
 *.db
-data/*.db
+data/*.db  # Bu fayllarni ham e'tibordan chetda qoldiradi
