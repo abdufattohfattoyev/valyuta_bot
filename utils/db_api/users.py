@@ -28,10 +28,15 @@ class UserDatabase(Database):
         """
         self.execute(sql, commit=True)
 
+<<<<<<< HEAD
     def add_user(self, telegram_id: int, username: str = None):
         created_at = self._get_current_time().isoformat()  # Mahalliy vaqt
         if username is None:  # Agar username bo'lmasa, uni bo'sh qilib qo'ying
             username = "Unknown"
+=======
+    def add_user(self, telegram_id: int, username: str):
+        created_at = self._get_current_time().isoformat()  # Mahalliy vaqt
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
         sql = """
             INSERT INTO Users(telegram_id, username, created_at) VALUES(?, ?, ?)
         """
@@ -55,6 +60,7 @@ class UserDatabase(Database):
         """
         return self.execute(sql, parameters=(telegram_id,), fetchone=True)
 
+<<<<<<< HEAD
     def get_user_by_id(self, user_id):
         """Foydalanuvchi ID bilan ma'lumotlarni olish"""
         sql = """
@@ -62,6 +68,8 @@ class UserDatabase(Database):
         """
         return self.execute(sql, parameters=(user_id,), fetchone=True)
 
+=======
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
     def count_daily_users(self):
         now = self._get_current_time()
         today_start = self._get_start_of_day(now)

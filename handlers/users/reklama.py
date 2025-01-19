@@ -152,8 +152,13 @@ async def check_admin_permission(telegram_id: int):
     admin = user_db.check_if_admin(user_id=user_id)
     return admin
 
+<<<<<<< HEAD
 @dp.message_handler(Command("reklama"), state="*")  # Bu yerda barcha holatlar uchun ishlaydi
 @dp.message_handler(text="📣 Reklama", state="*")  # Agar tugma bosilgan bo'lsa ham ishlaydi
+=======
+@dp.message_handler(Command("reklama"))
+@dp.message_handler(text="📣 Reklama")
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
 async def reklama_handler(message: types.Message):
     telegram_id = message.from_user.id
     if await check_admin_permission(telegram_id) or await check_super_admin_permission(telegram_id):
@@ -164,7 +169,10 @@ async def reklama_handler(message: types.Message):
 
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
 @dp.callback_query_handler(lambda c: c.data in ["ad_type_text", "ad_type_forward", "ad_type_button", "ad_type_any"], state=ReklamaTuriState.tur)
 async def handle_ad_type(callback_query: types.CallbackQuery, state: FSMContext):
     await state.update_data(ad_type=callback_query.data)

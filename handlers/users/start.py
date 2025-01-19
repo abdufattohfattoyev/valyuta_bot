@@ -4,6 +4,7 @@ import pytz
 import aiohttp
 from aiogram import types
 from aiogram.dispatcher.filters.builtin import CommandStart
+<<<<<<< HEAD
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from decimal import Decimal
 import time
@@ -12,6 +13,16 @@ from loader import dp, bot, user_db
 from keyboards.default.valyuta_kurs import start_knopka
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from utils.notify_admins import notify_admin
+=======
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from decimal import Decimal
+import time
+from keyboards.inline.inline_knopka import menu
+from loader import dp, bot
+from keyboards.default.valyuta_kurs import start_knopka
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
 # O'zbekiston vaqt zonasini olish
 uzb_tz = pytz.timezone('Asia/Tashkent')
 
@@ -19,6 +30,7 @@ uzb_tz = pytz.timezone('Asia/Tashkent')
 last_updated = 0
 cache = {}
 selected_currency = {}
+<<<<<<< HEAD
 
 
 # Valyuta kurslarini olish funksiyasi
@@ -119,10 +131,123 @@ async def send_updates_to_users():
 #         # Belirlangan vaqtda yangilanishlarni yuborish
 #         await asyncio.sleep(wait_time)
 #         await send_updates_to_users()  # Foydalanuvchilarga yangilanish yuborish
+=======
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
 
 
+# Valyuta kurslarini olish funksiyasi
+async def get_currency_rate():
+    global last_updated, cache
+    current_time = time.time()
+
+    # Agar kesh yangilanmagan bo'lsa yoki eski bo'lsa, uni yangilash
+    if current_time - last_updated > 3600:  # Keshni har soatda yangilash
+        async with aiohttp.ClientSession() as session:
+            try:
+                # CBU API URL
+                async with session.get("https://cbu.uz/uz/arkhiv-kursov-valyut/json/") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        # Valyutalar ro'yxatini keshga olish
+                        cache = {item['Ccy']: Decimal(item['Rate']) for item in data}
+                        last_updated = current_time
+                    else:
+                        print(f"API xatolik: {response.status}")
+                        cache = {}
+            except Exception as e:
+                print(f"Valyuta olishda xatolik: {e}")
+                cache = {}
+    return cache
+
+# Foydalanuvchilarni yangilanishlar bilan yuborish
+async def send_updates_to_users():
+    rates = await get_currency_rate()
+    for user_id, settings in selected_currency.items():
+        from_currency = settings["from"]
+        to_currency = settings["to"]
+        threshold = settings["threshold"]
+
+        if from_currency in rates and to_currency in rates:
+            rate = rates[from_currency] / rates[to_currency]
+            if rate > threshold:
+                await bot.send_message(user_id, f"⚠️ Kurs yangilandi: {from_currency} dan {to_currency} ga konvertatsiya qilish kursi {rate} so'mdan oshdi.")
+
+# Foydalanuvchi valyutalar kurslarini ko'rsatishi
+@dp.message_handler(text="💱 Valyuta kurslari")
+async def show_currency_rates(message: types.Message):
+    rates = await get_currency_rate()
+    if rates:
+        text = "<b>📊 <u>Valyuta kurslari</u>:</b>\n\n"
+
+        currency_list = {
+            "USD": "🇺🇸 Dollar",
+            "EUR": "🇪🇺 Yevro",
+            "GBP": "🇬🇧 Funt",
+            "RUB": "🇷🇺 Rubl",
+            "CNY": "🇨🇳 Yuan",
+            "KRW": "🇰🇷 Von",
+            "TRY": "🇹🇷 Lira",
+            "TMT": "🇹🇲 Manat",
+            "KZT": "🇰🇿 Tenge",
+            "TJS": "🇹🇯 Somoni",
+            "KGZ": "🇰🇬 Som",
+            "AED": "🇦🇪 Dirham"
+        }
+
+        # Valyutalar ro'yxatini ko'rsatish, bayroqlar bilan
+        for currency, flag in currency_list.items():
+            rate = rates.get(currency)
+            if rate:
+                text += f"1 {flag} = <b>{rate:.2f}</b> so'm\n"
+
+        # Qo'shimcha ma'lumotlar va yangiliklar
+        text += "\n<b>💡 Kurslar har soatda yangilanadi.</b>\n"
+        text += "<b>⚠️ Diqqat! Kurslar o'zgarishi mumkin.</b>\n\n"
+
+        await message.answer(text, parse_mode="HTML")
+    else:
+        await message.answer(
+            "⚠️ <b>Valyuta kurslarini olishda xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko'ring.</b>",
+            parse_mode="HTML")
+
+
+# Foydalanuvchilarni yangilanishlar bilan yuborish
+async def send_updates_to_users():
+    rates = await get_currency_rate()
+    for user_id, settings in selected_currency.items():
+        from_currency = settings["from"]
+        to_currency = settings["to"]
+        threshold = settings["threshold"]
+
+        if from_currency in rates and to_currency in rates:
+            rate = rates[from_currency] / rates[to_currency]
+            if rate > threshold:
+                await bot.send_message(user_id, f"⚠️ Kurs yangilandi: {from_currency} dan {to_currency} ga konvertatsiya qilish kursi {rate} so'mdan oshdi.")
+
+
+# Har kuni yangilanishlarni yuborish uchun funktsiya
+async def send_daily_currency_updates():
+    while True:
+        now = datetime.now(uzb_tz)  # O'zbekiston vaqti bilan
+        # Kelgusi 10:00 ni olish
+        next_run_time = now.replace(hour=10, minute=0, second=0, microsecond=0)
+
+        # Agar hozirgi vaqt 10:00 dan o'tgan bo'lsa, ertangi 10:00 ni kutish
+        if now >= next_run_time:
+            next_run_time += timedelta(days=1)
+
+        # Kutish vaqti
+        wait_time = (next_run_time - now).total_seconds()
+
+        # Belirlangan vaqtda yangilanishlarni yuborish
+        await asyncio.sleep(wait_time)
+        await send_updates_to_users()  # Foydalanuvchilarga yangilanish yuborish
+
+
+# Botni boshlash kommandasi
 @dp.message_handler(CommandStart())
 async def bot_start(message: types.Message):
+<<<<<<< HEAD
     # Foydalanuvchini ro'yxatga olish
     user_info = {
         "user_id": message.from_user.id,
@@ -207,6 +332,66 @@ async def convert_currency(callback: types.CallbackQuery):
                 parse_mode="HTML"
             )
 
+=======
+    await message.answer_sticker("CAACAgEAAxkBAcIs8meL4ha6zipaYRyZoyD_2pRwHd1rAALOAgACBkQYRM-YkXjyXK5oNgQ")  # Salomlashish stikeri
+    await message.answer(
+        f"<b>Assalomu alaykum, {message.from_user.full_name}!</b>\n<i>Valyuta botiga xush kelibsiz!</i>",
+        reply_markup=start_knopka,
+        parse_mode="HTML"
+    )
+
+# Valyuta kurslarini ko'rsatish
+@dp.message_handler(text="💱 Valyuta kurslari")
+async def show_currency_rates(message: types.Message):
+    rates = await get_currency_rate()
+    if rates:
+        text = "<b>📊 <u>Valyuta kurslari</u>:</b>\n\n"
+
+        for currency in ["USD", "EUR", "RUB", "GBP"]:
+            rate = rates.get(currency)
+            if rate:
+                text += f"💵 1 <b>{currency}</b> = <i>{rate:.2f}</i> so'm\n"
+
+        # Qo'shimcha ma'lumotlar va eng so'nggi yangiliklar
+        text += "\n<b>💡 Kurslar har soatda yangilanadi.</b>\n"
+        text += "<b>⚠️ Diqqat! Kurslar o'zgarishi mumkin.</b>\n\n"
+
+
+        await message.answer(text, parse_mode="HTML")
+    else:
+        await message.answer(
+            "⚠️ <b>Valyuta kurslarini olishda xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko'ring.</b>",
+            parse_mode="HTML")
+
+
+# Konvertatsiya qilish uchun valyutani tanlash
+@dp.message_handler(text="♻️ Konvertatsiya qilish")
+async def choose_conversion(message: types.Message):
+    await message.answer("🔄 <b>Konvertatsiya qilish uchun valyutani tanlang:</b>", reply_markup=menu, parse_mode="HTML")
+
+# Valyuta konvertatsiyasi uchun callback
+@dp.callback_query_handler(lambda callback: callback.data.startswith('som_to_') or callback.data.startswith('usd_to_') or callback.data.startswith('eur_to_') or callback.data.startswith('rub_to_') or callback.data.startswith('gbp_to_'))
+async def convert_currency(callback: types.CallbackQuery):
+    try:
+        conversion_type = callback.data.split("_to_")
+        from_currency, to_currency = conversion_type[0].upper(), conversion_type[1].upper()
+        selected_currency[callback.from_user.id] = {"from": from_currency, "to": to_currency, "threshold": 0.1}
+
+        if from_currency == "SOM":
+            await callback.message.answer(
+                f"💰 <b>So'mdan {to_currency} ga konvertatsiya qilish uchun miqdorni kiriting:</b>\n\n"
+                "⚠️ <b>Foydalanuvchi, iltimos, faqat sonlar kiriting!</b> Masalan, 1000 yoki 10.5 kabi.",
+                parse_mode="HTML"
+            )
+
+        else:
+            await callback.message.answer(
+                f"💰 <b>{from_currency} dan So'mga konvertatsiya qilish uchun miqdorni kiriting:</b>\n\n"
+                "⚠️ <b>Foydalanuvchi, iltimos, faqat sonlar kiriting!</b> Masalan, 1000 yoki 10.5 kabi.",
+                parse_mode="HTML"
+            )
+
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
         await callback.answer()
     except Exception as e:
         print(f"Xatolik: {e}")
@@ -258,15 +443,27 @@ async def handle_conversion(message: types.Message):
         await message.answer("⚠️ <b>Hisoblashda xatolik yuz berdi. Iltimos, faqat raqamlar kiriting.</b>", parse_mode="HTML")
 
 
+<<<<<<< HEAD
 @dp.message_handler(lambda message: not (message.text.replace(',', '.', 1).isdigit() or ('.' in message.text and message.text.count('.') == 1) or (',' in message.text and message.text.count(',', 1) == 1)) and message.text.lower() != '/reklama')
+=======
+# Foydalanuvchi xato yoki so'z kiritsa
+@dp.message_handler(lambda message: not (message.text.replace(',', '.', 1).isdigit() or ('.' in message.text and message.text.count('.') == 1) or (',' in message.text and message.text.count(',') == 1)))
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
 async def handle_invalid_input(message: types.Message):
     await message.answer("⚠️ <b>Foydalanuvchi, iltimos, kerakli bo'limlar orqali ishlang </b>", parse_mode="HTML")
 
 
+<<<<<<< HEAD
 
 
 # Asinxron ravishda kurs yangilanishlarini boshlash
 async def on_start():
     # Kurs yangilanishini tekshirib yuborish uchun birinchi marta ishlatamiz
     await get_currency_rate()
+=======
+# Asinxron ravishda kurs yangilanishlarini boshlash
+async def on_start():
+    # Kurs yangilanishlarini har kuni yuborishni boshlash
+    await send_daily_currency_updates()
+>>>>>>> 015dc4120062488fa528e65fbe523fe7731e70a0
 
