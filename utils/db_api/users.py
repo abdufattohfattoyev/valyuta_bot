@@ -1,64 +1,155 @@
-# users.py: Foydalanuvchilar bilan bog'liq operatsiyalar
-from .database import  Database
-from datetime import datetime
+from .database import Database
+from datetime import datetime, timedelta
+import pytz  # Mahalliy vaqt uchun kutubxona
 
 class UserDatabase(Database):
+    def __init__(self, path_to_db: str):
+        super().__init__(path_to_db)  # Ota sinfning konstruktorini chaqirish
+        self.uzbekistan_tz = pytz.timezone("Asia/Tashkent")  # Mahalliy vaqt zonasini aniqlash
+
+    def _get_current_time(self):
+        """Joriy vaqtni olish uchun yordamchi funksiya."""
+        return datetime.now(self.uzbekistan_tz)
+
+    def _get_start_of_day(self, date: datetime):
+        """Kun boshlanishini olish uchun yordamchi funksiya."""
+        return date.replace(hour=0, minute=0, second=0, microsecond=0)
+
     def create_table_users(self):
         sql = """
-        CREATE TABLE IF NOT EXISTS Users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            telegram_id BIGINT NOT NULL,
-            username VARCHAR(255)  NULL,
-            referrer_id INTEGER NULL,
-            balance DECIMAL(10, 2) NOT NULL DEFAULT 0.0,
-            last_active DATETIME NULL,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (referrer_id) REFERENCES Users (id) ON DELETE SET NULL
-        );
+            CREATE TABLE IF NOT EXISTS Users(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id BIGINT NOT NULL,
+                username VARCHAR(255) NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_active DATETIME NULL,
+                is_admin BOOLEAN NOT NULL DEFAULT 0
+            );
         """
         self.execute(sql, commit=True)
 
-    def add_user(self, telegram_id: int, username: str, referrer_id=None, created_at=None):
+    def add_user(self, telegram_id: int, username: str = None):
+        created_at = self._get_current_time().isoformat()  # Mahalliy vaqt
+        if username is None:  # Agar username bo'lmasa, uni bo'sh qilib qo'ying
+            username = "Unknown"
         sql = """
-        INSERT INTO Users(telegram_id, username, referrer_id, balance, created_at) VALUES(?, ?, ?, 0.0, ?)
+            INSERT INTO Users(telegram_id, username, created_at) VALUES(?, ?, ?)
         """
-        if created_at is None:
-            created_at = datetime.now().isoformat()
-        self.execute(sql, parameters=(telegram_id, username, referrer_id, created_at), commit=True)
+        self.execute(sql, parameters=(telegram_id, username, created_at), commit=True)
 
     def select_all_users(self):
         sql = """
-        SELECT * FROM Users
+            SELECT * FROM Users
         """
         return self.execute(sql, fetchall=True)
 
-    def select_user(self, **kwargs):
-        sql = "SELECT * FROM Users WHERE "
-        sql, parameters = self.format_args(sql, kwargs)
-        return self.execute(sql, parameters=parameters, fetchone=True)
-
     def count_users(self):
-        return self.execute("SELECT COUNT(*) FROM Users;", fetchone=True)
-
-    def delete_users(self):
-        self.execute("DELETE FROM Users WHERE TRUE", commit=True)
-
-    def update_user_balance(self, user_id: int, amount: float):
         sql = """
-        UPDATE Users
-        SET balance = balance + ?
-        WHERE id = ?
+            SELECT COUNT(*) FROM Users
         """
-        self.execute(sql, parameters=(amount, user_id), commit=True)
+        return self.execute(sql, fetchone=True)[0]
 
-    def update_user_last_active(self, user_id: int):
+    def select_user(self, telegram_id: int):
         sql = """
-        UPDATE Users
-        SET last_active = ?
-        WHERE id = ?
+            SELECT * FROM Users WHERE telegram_id = ?
         """
-        last_active = datetime.now().isoformat()
-        self.execute(sql, parameters=(last_active, user_id), commit=True)
+        return self.execute(sql, parameters=(telegram_id,), fetchone=True)
+
+    def get_user_by_id(self, user_id):
+        """Foydalanuvchi ID bilan ma'lumotlarni olish"""
+        sql = """
+            SELECT * FROM Users WHERE telegram_id = ?
+        """
+        return self.execute(sql, parameters=(user_id,), fetchone=True)
+
+    def count_daily_users(self):
+        now = self._get_current_time()
+        today_start = self._get_start_of_day(now)
+        tomorrow_start = today_start + timedelta(days=1)
+
+        sql = """
+            SELECT COUNT(*) FROM Users
+            WHERE created_at >= ? AND created_at < ?
+        """
+        return self.execute(
+            sql, parameters=(today_start.isoformat(), tomorrow_start.isoformat()), fetchone=True
+        )[0]
+
+    def count_weekly_users(self):
+        now = self._get_current_time()
+        one_week_ago = now - timedelta(days=7)
+
+        sql = """
+            SELECT COUNT(*) FROM Users
+            WHERE created_at >= ?
+        """
+        return self.execute(sql, parameters=(one_week_ago.isoformat(),), fetchone=True)[0]
+
+    def count_monthly_users(self):
+        now = self._get_current_time()
+        one_month_ago = now - timedelta(days=30)
+
+        sql = """
+            SELECT COUNT(*) FROM Users
+            WHERE created_at >= ?
+        """
+        return self.execute(sql, parameters=(one_month_ago.isoformat(),), fetchone=True)[0]
+
+    def update_last_active(self, telegram_id: int):
+        last_active = self._get_current_time().isoformat()  # Mahalliy vaqt
+        sql = """
+            UPDATE Users
+            SET last_active = ?
+            WHERE telegram_id = ?
+        """
+        self.execute(sql, parameters=(last_active, telegram_id), commit=True)
+
+    def count_active_daily_users(self):
+        now = self._get_current_time()
+        today_start = self._get_start_of_day(now)
+        tomorrow_start = today_start + timedelta(days=1)
+
+        sql = """
+            SELECT COUNT(*) FROM Users
+            WHERE last_active >= ? AND last_active < ?
+        """
+        return self.execute(
+            sql, parameters=(today_start.isoformat(), tomorrow_start.isoformat()), fetchone=True
+        )[0]
+
+    def count_active_weekly_users(self):
+        now = self._get_current_time()
+        one_week_ago = now - timedelta(days=7)
+
+        sql = """
+            SELECT COUNT(*) FROM Users
+            WHERE last_active >= ?
+        """
+        return self.execute(sql, parameters=(one_week_ago.isoformat(),), fetchone=True)[0]
+
+    def count_active_monthly_users(self):
+        now = self._get_current_time()
+        one_month_ago = now - timedelta(days=30)
+
+        sql = """
+            SELECT COUNT(*) FROM Users
+            WHERE last_active >= ?
+        """
+        return self.execute(sql, parameters=(one_month_ago.isoformat(),), fetchone=True)[0]
+
+    def check_if_admin(self, user_id: int):
+        query = "SELECT is_admin FROM Users WHERE telegram_id = ?"
+        result = self.execute(query, parameters=(user_id,), fetchone=True)
+        return bool(result) and result[0] == 1
+# Jadvalga is_admin ustunini qo'shish
+    def add_is_admin_column(self):
+        sql = """
+            ALTER TABLE Users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0
+        """
+        self.execute(sql, commit=True)
+
+
+
 
     def create_table_referral_rewards(self):
         sql = """
@@ -102,12 +193,10 @@ class UserDatabase(Database):
             """
             self.execute(sql_insert, parameters=(referrer_id, reward_amount), commit=True)
 
-
         # Update user balance
         self.update_user_balance(referrer_id, reward_amount)
         # Add transaction history
         self.add_transaction_history(referrer_id, reward_amount, 'reward')
-
 
     def withdraw_user_balance(self, user_id: int, amount: float):
         user = self.select_user(id=user_id)
@@ -159,7 +248,4 @@ class UserDatabase(Database):
         """
         return self.execute(sql, parameters=(since_time.isoformat(),), fetchone=True)[0]
 
-    def check_if_admin(self, user_id: int) -> bool:
-        sql = "SELECT 1 FROM Admins WHERE user_id = ?"
-        result = self.execute(sql, parameters=(user_id,), fetchone=True)
-        return result is not None
+
