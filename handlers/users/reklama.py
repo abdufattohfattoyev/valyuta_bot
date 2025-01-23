@@ -163,8 +163,6 @@ async def reklama_handler(message: types.Message):
         await message.reply("Sizda ushbu amalni bajarish uchun ruxsat yo'q.")
 
 
-
-
 @dp.callback_query_handler(lambda c: c.data in ["ad_type_text", "ad_type_forward", "ad_type_button", "ad_type_any"], state=ReklamaTuriState.tur)
 async def handle_ad_type(callback_query: types.CallbackQuery, state: FSMContext):
     await state.update_data(ad_type=callback_query.data)

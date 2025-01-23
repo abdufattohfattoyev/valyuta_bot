@@ -102,23 +102,23 @@ async def send_updates_to_users():
                 await bot.send_message(user_id, f"⚠️ Kurs yangilandi: {from_currency} dan {to_currency} ga konvertatsiya qilish kursi {rate} so'mdan oshdi.")
 
 
-# Har kuni yangilanishlarni yuborish uchun funktsiya
-# async def send_daily_currency_updates():
-#     while True:
-#         now = datetime.now(uzb_tz)  # O'zbekiston vaqti bilan
-#         # Kelgusi 10:00 ni olish
-#         next_run_time = now.replace(hour=10, minute=0, second=0, microsecond=0)
-#
-#         # Agar hozirgi vaqt 10:00 dan o'tgan bo'lsa, ertangi 10:00 ni kutish
-#         if now >= next_run_time:
-#             next_run_time += timedelta(days=1)
-#
-#         # Kutish vaqti
-#         wait_time = (next_run_time - now).total_seconds()
-#
-#         # Belirlangan vaqtda yangilanishlarni yuborish
-#         await asyncio.sleep(wait_time)
-#         await send_updates_to_users()  # Foydalanuvchilarga yangilanish yuborish
+
+async def send_daily_currency_updates():
+    while True:
+        now = datetime.now(uzb_tz)  # O'zbekiston vaqti bilan
+        # Kelgusi 10:00 ni olish
+        next_run_time = now.replace(hour=10, minute=0, second=0, microsecond=0)
+
+        # Agar hozirgi vaqt 10:00 dan o'tgan bo'lsa, ertangi 10:00 ni kutish
+        if now >= next_run_time:
+            next_run_time += timedelta(days=1)
+
+        # Kutish vaqti
+        wait_time = (next_run_time - now).total_seconds()
+
+        # Belirlangan vaqtda yangilanishlarni yuborish
+        await asyncio.sleep(wait_time)
+        await send_updates_to_users()  # Foydalanuvchilarga yangilanish yuborish
 
 
 @dp.message_handler(CommandStart())
